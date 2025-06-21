@@ -7,6 +7,12 @@ This tool is just my practice on pe loading. I write bad code and do not use it 
 - Now `cd reflection`
 - Next modify the code inside DllMain() of reflection dll and compile it using `cargo build --release`
 
+## Output
+
+![screenshot1](./assets/img/ss1.png)
+
+![screenshot2](./assets/img/ss2.png)
+
 ## Credits 
 
 https://github.com/stephenfewer/ReflectiveDLLInjection
