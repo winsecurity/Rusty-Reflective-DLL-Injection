@@ -1,0 +1,13 @@
+[package]
+name = "reflection"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+winapi = { version = "0.3.9", features = ["ktmw32","accctrl", "errhandlingapi", "fileapi", "handleapi", "heapapi", "libloaderapi", "lmapibuf", "lmcons", "lmshare", "memoryapi", "minwindef", "namedpipeapi", "ntdef", "ntlsa", "processthreadsapi", "sddl", "securitybaseapi", "synchapi", "tlhelp32", "winbase", "winerror", "winnt", "winreg", "winsvc", "winuser"] }
+ntapi = "0.4.1"
+bitflags = "2.6.0"
+
+
+[lib]
+crate-type = ["cdylib"]
