@@ -6,7 +6,7 @@ use winapi::ctypes::*;
 use winapi::shared::minwindef::*;
 use winapi::shared::windef::HWND;
 use winapi::um::libloaderapi::{GetProcAddress, LoadLibraryA};
-use winapi::um::memoryapi::{VirtualAlloc, WriteProcessMemory};
+use winapi::um::memoryapi::{VirtualAlloc, VirtualProtect, WriteProcessMemory};
 use winapi::um::processthreadsapi::*;
 use winapi::um::winnt::*;
 use winapi::um::winuser::MessageBoxA;
@@ -64,6 +64,7 @@ pub unsafe extern "C" fn myloader(){
 
         let loadlibraryaddr = get_dll_raw_export_function(kernel32base,"LoadLibraryA");
 
+        let virtualprotectaddr = get_dll_raw_export_function(kernel32base,"VirtualProtect");
 
         // we are getting the function pointers
         let virtuallocrunner = core::mem::transmute::<usize,
@@ -82,6 +83,11 @@ pub unsafe extern "C" fn myloader(){
 
 
 
+        let virtualprotectrunner = core::mem::transmute::<usize,
+        fn(LPVOID, usize, DWORD,PDWORD) -> BOOL>(virtualprotectaddr);
+
+
+
         // parsing our old dll contents at ourolddllbase
 
         if ourolddllbase==0{
@@ -94,7 +100,7 @@ pub unsafe extern "C" fn myloader(){
 
         // allocating size of our dll using virtualallocrunner
         // TODO: Change memory protections later
-        let finaldllbase = virtuallocrunner(core::ptr::null_mut(),ntheader.OptionalHeader.SizeOfImage as usize,MEM_COMMIT|MEM_RESERVE,PAGE_EXECUTE_READWRITE);
+        let finaldllbase = virtuallocrunner(core::ptr::null_mut(),ntheader.OptionalHeader.SizeOfImage as usize,MEM_COMMIT|MEM_RESERVE,PAGE_READWRITE);
 
         // copying dos header
         //core::ptr::write(finaldllbase as *mut IMAGE_DOS_HEADER, dosheader);
@@ -133,6 +139,8 @@ pub unsafe extern "C" fn myloader(){
                     *((ourolddllbase as usize+section.PointerToRawData as usize + j as usize) as *const u8);
 
             }
+
+
 
 
 
@@ -239,6 +247,55 @@ pub unsafe extern "C" fn myloader(){
 
         }
 
+
+        // changing memory protection for sections
+        for i in 0..ntheader.FileHeader.NumberOfSections{
+
+            let section = *((ourolddllbase as usize+dosheader.e_lfanew as usize +
+                core::mem::size_of::<IMAGE_NT_HEADERS64>()
+                + (i as usize * core::mem::size_of::<IMAGE_SECTION_HEADER>())) as *const IMAGE_SECTION_HEADER);
+
+
+
+            // changing memory protection of each section
+            let mut memoryprotection = 0;
+            let mut oldprotect: u32 = 0;
+
+
+
+
+            if (section.Characteristics&0x20000000 == 0x20000000) &&
+                (section.Characteristics&0x40000000 == 0x40000000)
+                {
+                // section is executable and readable, not writable
+                memoryprotection = PAGE_EXECUTE_READ;
+            }
+
+
+            else if (section.Characteristics&0xC0000000 == 0xC0000000) {
+
+                // section is readable and writable, not executable
+                memoryprotection = PAGE_READWRITE;
+            }
+
+
+            else if section.Characteristics&0x40000000 == 0x40000000{
+                // section is readabale
+                memoryprotection = PAGE_READONLY;
+
+            }
+
+
+            //memoryprotection  = PAGE_EXECUTE_READ;
+            if memoryprotection !=0{
+                virtualprotectrunner((finaldllbase as usize+section.VirtualAddress as usize)as *mut c_void,
+                                     *section.Misc.VirtualSize() as usize,memoryprotection,&mut oldprotect);
+
+            }
+
+
+
+        }
 
 
 
