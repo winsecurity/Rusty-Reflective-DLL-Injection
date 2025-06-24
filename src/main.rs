@@ -148,7 +148,15 @@ fn main() {
 
     // "E:\rust_practice\omnitrix\reflection\target\release\reflection.dll"
 
-    let buffer = std::fs::read("E:\\rust_practice\\omnitrix\\reflection\\target\\release\\reflection.dll").unwrap();
+
+
+    let buffer = reqwest::blocking::get("http://127.0.0.1:8080/reflection.dll")
+        .unwrap()
+        .bytes().unwrap().to_vec();
+
+
+
+   // let buffer = std::fs::read("E:\\rust_practice\\omnitrix\\reflection\\target\\release\\reflection.dll").unwrap();
 
 
 
